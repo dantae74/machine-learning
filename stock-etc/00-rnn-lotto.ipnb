@@ -1,0 +1,551 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "colab": {
+      "name": "13-rnn-lotto.ipynb",
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/dantae74/machine-learning/blob/main/13-rnn-lotto.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "WfgQSbgOoe-2"
+      },
+      "source": [
+        "모두를 위한 머신러닝에서 가져왔습니다.\n",
+        "# RNN-lotto"
+      ],
+      "id": "WfgQSbgOoe-2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "RK3QTbWDofS7"
+      },
+      "source": [
+        "import numpy as np\n",
+        "import tensorflow as tf\n",
+        "import pandas as pd\n",
+        "from tensorflow import keras\n",
+        "from tensorflow.keras import layers"
+      ],
+      "id": "RK3QTbWDofS7",
+      "execution_count": 1,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "30dxHmEPog-b"
+      },
+      "source": [
+        "url = 'https://raw.githubusercontent.com/dantae74/machine-learning/main/dataset/lotto.csv'\n",
+        "df = pd.read_csv(url)"
+      ],
+      "id": "30dxHmEPog-b",
+      "execution_count": 2,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "5CoSg25DgmU1"
+      },
+      "source": [
+        "df.head()"
+      ],
+      "id": "5CoSg25DgmU1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "2Cnmooveb8TW"
+      },
+      "source": [
+        "df = df.sort_values('seq', ascending=True)"
+      ],
+      "id": "2Cnmooveb8TW",
+      "execution_count": 4,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "TURmD9u6xmOu"
+      },
+      "source": [
+        "df.head()"
+      ],
+      "id": "TURmD9u6xmOu",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "w5GX3SFZ2g0C",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "773c127e-f5aa-4dd7-856e-0391f0ecb95f"
+      },
+      "source": [
+        "df.shape"
+      ],
+      "id": "w5GX3SFZ2g0C",
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(964, 10)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 6
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "LjNU4sK9yTRl"
+      },
+      "source": [
+        "ncount = np.zeros((1,45), dtype=float)"
+      ],
+      "id": "LjNU4sK9yTRl",
+      "execution_count": 7,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "bmeMpJlk4H0M",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f0986f24-138b-4bc3-afe8-362985db5a83"
+      },
+      "source": [
+        "for i in range(df.shape[0]):\n",
+        "  for j in range(6):\n",
+        "    col = df.iloc[i][str(j+1)]\n",
+        "    ncount[0][col-1] += 1.0\n",
+        "\n",
+        "  if i == 0:\n",
+        "    X = ncount\n",
+        "  else:\n",
+        "    X = np.append(X, ncount, axis=0)\n",
+        "\n",
+        "print('x.shape:', X.shape)\n",
+        "# X[964]"
+      ],
+      "id": "bmeMpJlk4H0M",
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "x.shape: (964, 45)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jbeEjug_2si4"
+      },
+      "source": [
+        "X[0]"
+      ],
+      "id": "jbeEjug_2si4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "DdYK7wF7EHKe"
+      },
+      "source": [
+        "df_y = df[['1','2','3','4','5','6']]"
+      ],
+      "id": "DdYK7wF7EHKe",
+      "execution_count": 10,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "t5iQbI_vGFHK"
+      },
+      "source": [
+        "Y = df_y.values"
+      ],
+      "id": "t5iQbI_vGFHK",
+      "execution_count": 11,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3KIqnZRkCAFK",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "5b55c46f-2810-4030-ff33-d99c65d0f346"
+      },
+      "source": [
+        "print('x.shape:', X.shape)\n",
+        "print('y.shape:', Y.shape)"
+      ],
+      "id": "3KIqnZRkCAFK",
+      "execution_count": 12,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "x.shape: (964, 45)\n",
+            "y.shape: (964, 6)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7pU7nsKBAxHQ",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "396e8bdd-d01d-4331-d759-a45e70d1e5e9"
+      },
+      "source": [
+        "y_onehot = []\n",
+        "tmponehot = np.zeros(45).tolist()\n",
+        "tmponehot[3] = 1.0\n",
+        "y_onehot.append(tmponehot)\n",
+        "y_onehot.append(tmponehot)\n",
+        "\n",
+        "np.array(y_onehot).shape\n"
+      ],
+      "id": "7pU7nsKBAxHQ",
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(2, 45)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 13
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "iSNo8nrGCu9R"
+      },
+      "source": [
+        "def make_onehot(value):\n",
+        "  onehot = np.zeros(45).tolist()\n",
+        "  onehot[value-1] = 1.0\n",
+        "  return onehot"
+      ],
+      "id": "iSNo8nrGCu9R",
+      "execution_count": 14,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Qe_1_9bdBny3",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "a5780cee-92a4-478c-d4cd-a52d7b64b1a9"
+      },
+      "source": [
+        "y_onehot = []\n",
+        "for i in range(Y.shape[0]):\n",
+        "  for j in range(6):\n",
+        "    y_onehot.append(make_onehot(Y[i][j]))\n",
+        "\n",
+        "y_onehot = np.array(y_onehot)\n",
+        "y_onehot = np.reshape(y_onehot, (964,6,45))\n",
+        "print('y_onehot.shape:', y_onehot.shape)\n"
+      ],
+      "id": "Qe_1_9bdBny3",
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "y_onehot.shape: (964, 6, 45)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9-9kF2w1AxN-",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "1d0f6ff1-dbd2-42fa-cfa1-366adb25dbf1"
+      },
+      "source": [
+        "X.shape"
+      ],
+      "id": "9-9kF2w1AxN-",
+      "execution_count": 16,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(964, 45)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 16
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "cPoKR8QnLEzm"
+      },
+      "source": [
+        "# build datasets\n",
+        "def build_dataset(x_time_series, y_time_series, seq_length):\n",
+        "    dataX = []\n",
+        "    dataY = []\n",
+        "    for i in range(0, len(y_time_series) - seq_length):\n",
+        "        x = x_time_series[i:i + seq_length, :]\n",
+        "        y = y_time_series[i + seq_length - 1, :]\n",
+        "        dataX.append(x)\n",
+        "        dataY.append(y)\n",
+        "    return np.array(dataX), np.array(dataY)"
+      ],
+      "id": "cPoKR8QnLEzm",
+      "execution_count": 17,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ocVECshALG2x"
+      },
+      "source": [
+        "x_data, y_data = build_dataset(X, y_onehot, 6)"
+      ],
+      "id": "ocVECshALG2x",
+      "execution_count": 18,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "hw9HFjVoMVfX",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "ab11345c-6496-45bd-ffd2-d971d6ff6968"
+      },
+      "source": [
+        "print('x_data.shape:', x_data.shape)\n",
+        "print('y_data.shape:', y_data.shape)"
+      ],
+      "id": "hw9HFjVoMVfX",
+      "execution_count": 19,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "x_data.shape: (958, 6, 45)\n",
+            "y_data.shape: (958, 6, 45)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "GIT7nmafMhJ1"
+      },
+      "source": [
+        "x_data[0]\n",
+        "y_data[0]"
+      ],
+      "id": "GIT7nmafMhJ1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "xsXFsjoQGdGo",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "0ebca3ef-df6b-4b77-f711-7d331b28d1de"
+      },
+      "source": [
+        "model = keras.Sequential();\n",
+        "model.add(keras.layers.LSTM(units=45, input_shape=(6, 45), return_sequences=True))\n",
+        "model.add(keras.layers.LSTM(units=45, return_sequences=True))\n",
+        "model.add(keras.layers.Dense(units=45, activation='softmax'))\n",
+        "model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(learning_rate=0.01), metrics=['accuracy'])\n",
+        "model.summary()"
+      ],
+      "id": "xsXFsjoQGdGo",
+      "execution_count": 21,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Model: \"sequential\"\n",
+            "_________________________________________________________________\n",
+            "Layer (type)                 Output Shape              Param #   \n",
+            "=================================================================\n",
+            "lstm (LSTM)                  (None, 6, 45)             16380     \n",
+            "_________________________________________________________________\n",
+            "lstm_1 (LSTM)                (None, 6, 45)             16380     \n",
+            "_________________________________________________________________\n",
+            "dense (Dense)                (None, 6, 45)             2070      \n",
+            "=================================================================\n",
+            "Total params: 34,830\n",
+            "Trainable params: 34,830\n",
+            "Non-trainable params: 0\n",
+            "_________________________________________________________________\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3Aqb0JiVBeg1",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "0f87cbc1-a717-46be-d123-3be98dd023e0"
+      },
+      "source": [
+        "model.fit(x_data, y_data, epochs=1000, verbose=0)"
+      ],
+      "id": "3Aqb0JiVBeg1",
+      "execution_count": 22,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<tensorflow.python.keras.callbacks.History at 0x7fd86cf3d810>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 22
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "isuRLno3OZuS",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "01869c57-b038-4591-9e9a-62c0fa08d88e"
+      },
+      "source": [
+        "x_test = x_data[-1,:]\n",
+        "x_test = np.delete(x_test, 0, axis=0)\n",
+        "x_test = np.append(x_test, X[-1:], axis=0)\n",
+        "x_test = x_test.reshape((1,6,45))\n",
+        "print('x_test.shape:', x_test.shape)"
+      ],
+      "id": "isuRLno3OZuS",
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "x_test.shape: (1, 6, 45)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jYyAfCQ8ask7"
+      },
+      "source": [
+        "pred_y = model.predict(x_test)"
+      ],
+      "id": "jYyAfCQ8ask7",
+      "execution_count": 24,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "fSohpQledb8b"
+      },
+      "source": [
+        "for i in range(6):\n",
+        "  print(np.argmax(pred_y[0][i]) + 1)"
+      ],
+      "id": "fSohpQledb8b",
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
